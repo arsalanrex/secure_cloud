@@ -30,7 +30,7 @@ def generate_tree(dir_path, prefix=""):
 
 # Define the base directory as the parent of the current directory (tests)
 base_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-output_file = os.path.join(os.path.dirname(__file__), "directory_tree.txt")
+output_file = os.path.join(os.path.dirname(__file__), "project_tree.txt")
 
 # Generate directory tree and write to output file in the tests directory
 with open(output_file, "w") as f:

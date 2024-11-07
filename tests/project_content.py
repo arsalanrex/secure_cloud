@@ -33,7 +33,7 @@ def read_files(dir_path, output_file):
 
 # Define the base directory as the parent of the current directory (to get full project structure)
 base_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-output_file = os.path.join(os.path.dirname(__file__), "directory_content.txt")
+output_file = os.path.join(os.path.dirname(__file__), "project_content.txt")
 
 # Clear any existing content in the output file before appending
 open(output_file, "w").close()

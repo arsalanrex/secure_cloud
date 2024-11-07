@@ -1,9 +1,8 @@
-# test_app.py
 import os
 import pytest
-from web_interface.app import app
-from encryption.encryptor import Encryptor
-from encryption.fragmenter import Fragmenter
+from web_interface.app import app  # Adjusted import for app
+from encryption.encryptor import Encryptor  # Adjusted import for Encryptor
+from encryption.fragmenter import Fragmenter  # Adjusted import for Fragmenter
 
 @pytest.fixture
 def client():

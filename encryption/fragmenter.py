@@ -2,6 +2,7 @@
 from typing import List
 import os
 import math
+from config import Config
 
 
 class Fragmenter:

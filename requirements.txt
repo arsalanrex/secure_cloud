@@ -1,8 +1,10 @@
 flask==2.0.1
+werkzeug==2.0.3
 cryptography==3.4.7
 google-auth-oauthlib==0.4.6
 google-auth-httplib2==0.1.0
 google-api-python-client==2.15.0
-onedrivesdk==2.0.1
+msal==1.16.0
+requests==2.26.0
 boxsdk==3.0.0
 python-dotenv==0.19.0

@@ -1,8 +1,7 @@
 # utils/metadata_manager.py
 import json
 import os
-from typing import Dict, Optional
-
+from typing import Dict, List, Optional
 
 class MetadataManager:
     def __init__(self, storage_path: str = "metadata"):

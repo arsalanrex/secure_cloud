@@ -44,12 +44,19 @@ pip install -r requirements.txt
    - Create a `.env` file in the project root
    - Add the following configuration:
 ```env
-SECRET_KEY=your-secret-key
-GOOGLE_CREDENTIALS=path/to/credentials.json
-ONEDRIVE_CLIENT_ID=your-client-id
-ONEDRIVE_CLIENT_SECRET=your-client-secret
-BOX_CLIENT_ID=your-client-id
-BOX_CLIENT_SECRET=your-client-secret
+# .env file
+SECRET_KEY=your-generated-secret-key-here
+
+# Google Drive
+GOOGLE_CREDENTIALS=path/to/your/google-credentials.json
+
+# OneDrive
+ONEDRIVE_CLIENT_ID=your-onedrive-client-id
+ONEDRIVE_CLIENT_SECRET=your-onedrive-client-secret
+
+# Box
+BOX_CLIENT_ID=your-box-client-id
+BOX_CLIENT_SECRET=your-box-client-secret
 ```
 
 ## Cloud Service Setup

@@ -1,7 +1,7 @@
 import os
 
 # List of directories or files to exclude from the tree output
-excluded_items = [".venv", ".git", ".idea", ".DS_Store", "tests"]
+excluded_items = [".venv", ".git", ".idea", ".DS_Store", "tests", "README.md", "LICENSE", ".gitignore"]
 
 
 # Function to generate the directory tree, excluding specified items

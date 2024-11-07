@@ -66,3 +66,11 @@ class OneDriveService(BaseCloudService):
             'name': item.name,
             'size': item.size
         } for item in items]
+
+    def delete_fragment(self, fragment_id: str) -> bool:
+        try:
+            self.client.item(drive='me', id=fragment_id).delete()
+            return True
+        except Exception as e:
+            print(f"Error deleting fragment from OneDrive: {str(e)}")
+            return False

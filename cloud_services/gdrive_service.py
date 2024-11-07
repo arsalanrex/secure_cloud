@@ -61,3 +61,11 @@ class GoogleDriveService(BaseCloudService):
             fields='id'
         ).execute()
         return file.get('id')
+
+    def delete_fragment(self, fragment_id: str) -> bool:
+        try:
+            self.service.files().delete(fileId=fragment_id).execute()
+            return True
+        except Exception as e:
+            print(f"Error deleting fragment from Google Drive: {str(e)}")
+            return False

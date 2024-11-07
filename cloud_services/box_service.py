@@ -68,3 +68,11 @@ class BoxService(BaseCloudService):
             'name': item.name,
             'size': item.size
         } for item in items]
+
+    def delete_fragment(self, fragment_id: str) -> bool:
+        try:
+            self.client.file(fragment_id).delete()
+            return True
+        except BoxAPIException as e:
+            print(f"Error deleting fragment from Box: {str(e)}")
+            return False

@@ -30,3 +30,8 @@ class BaseCloudService(ABC):
     def list_fragments(self) -> List[Dict]:
         """List all fragments in the secure folder."""
         pass
+
+    @abstractmethod
+    def delete_fragment(self, fragment_id: str) -> bool:
+        """Delete a fragment from the cloud storage."""
+        pass

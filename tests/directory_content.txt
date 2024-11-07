@@ -1,0 +1,673 @@
+
+========================================
+File: run.py
+========================================
+# run.py
+from web_interface.app import app
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+========================================
+File: config.py
+========================================
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+class Config:
+    SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key')
+    FRAGMENT_SIZE = 1024 * 1024  # 1MB
+    ENCRYPTED_FOLDER_NAME = 'SecureCloudStorage'
+
+    # Cloud Service Credentials
+    GOOGLE_CREDENTIALS = os.getenv('GOOGLE_CREDENTIALS')
+    ONEDRIVE_CLIENT_ID = os.getenv('ONEDRIVE_CLIENT_ID')
+    ONEDRIVE_CLIENT_SECRET = os.getenv('ONEDRIVE_CLIENT_SECRET')
+    BOX_CLIENT_ID = os.getenv('BOX_CLIENT_ID')
+    BOX_CLIENT_SECRET = os.getenv('BOX_CLIENT_SECRET')
+
+
+========================================
+File: requirements.txt
+========================================
+flask==2.0.1
+cryptography==3.4.7
+google-auth-oauthlib==0.4.6
+google-auth-httplib2==0.1.0
+google-api-python-client==2.15.0
+onedrivesdk==2.0.1
+boxsdk==3.0.0
+python-dotenv==0.19.0
+
+
+========================================
+File: .env
+========================================
+SECRET_KEY=your-secret-key
+GOOGLE_CREDENTIALS=path/to/credentials.json
+ONEDRIVE_CLIENT_ID=your-client-id
+ONEDRIVE_CLIENT_SECRET=your-client-secret
+BOX_CLIENT_ID=your-client-id
+BOX_CLIENT_SECRET=your-client-secret
+
+
+========================================
+File: encryption/fragmenter.py
+========================================
+# encryption/fragmenter.py
+from typing import List
+import os
+import math
+
+
+class Fragmenter:
+    def __init__(self, fragment_size: int = Config.FRAGMENT_SIZE):
+        self.fragment_size = fragment_size
+
+    def fragment_file(self, file_data: bytes) -> List[bytes]:
+        """Split file into fragments of specified size."""
+        num_fragments = math.ceil(len(file_data) / self.fragment_size)
+        fragments = []
+
+        for i in range(num_fragments):
+            start = i * self.fragment_size
+            end = start + self.fragment_size
+            fragment = file_data[start:end]
+            fragments.append(fragment)
+
+        return fragments
+
+    def reconstruct_file(self, fragments: List[bytes]) -> bytes:
+        """Reconstruct original file from fragments."""
+        return b''.join(fragments)
+
+
+
+========================================
+File: encryption/__init__.py
+========================================
+
+
+
+========================================
+File: encryption/encryptor.py
+========================================
+# encryption/encryptor.py
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+import base64
+
+
+class Encryptor:
+    def __init__(self, password: str):
+        self.key = self._generate_key(password)
+        self.fernet = Fernet(self.key)
+
+    def _generate_key(self, password: str) -> bytes:
+        salt = b'secure_cloud_salt'  # In production, use a random salt
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=100000,
+        )
+        key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+        return key
+
+    def encrypt(self, data: bytes) -> bytes:
+        return self.fernet.encrypt(data)
+
+    def decrypt(self, encrypted_data: bytes) -> bytes:
+        return self.fernet.decrypt(encrypted_data)
+
+
+========================================
+File: cloud_services/__init__.py
+========================================
+
+
+
+========================================
+File: cloud_services/onedrive_service.py
+========================================
+#cloud_services/onedrive_service.py
+from typing import List, Dict
+import onedrivesdk
+from onedrivesdk.helpers import GetAuthCodeServer
+from .base_cloud import BaseCloudService
+from config import Config
+import io
+
+
+class OneDriveService(BaseCloudService):
+    def __init__(self):
+        self.client = None
+        self.folder_id = None
+        self.redirect_uri = "http://localhost:8080/"
+        self.scopes = ['wl.signin', 'wl.offline_access', 'onedrive.readwrite']
+
+    def authenticate(self) -> bool:
+        http_provider = onedrivesdk.HttpProvider()
+        auth_provider = onedrivesdk.AuthProvider(
+            http_provider=http_provider,
+            client_id=Config.ONEDRIVE_CLIENT_ID,
+            scopes=self.scopes
+        )
+
+        client = onedrivesdk.OneDriveClient(
+            Config.ONEDRIVE_BASE_URL,
+            auth_provider,
+            http_provider
+        )
+
+        auth_url = client.auth_provider.get_auth_url(self.redirect_uri)
+        code = GetAuthCodeServer.get_auth_code(auth_url, self.redirect_uri)
+        client.auth_provider.authenticate(code, self.redirect_uri, Config.ONEDRIVE_CLIENT_SECRET)
+
+        self.client = client
+        return True
+
+    def create_secure_folder(self) -> str:
+        if not self.folder_id:
+            f = onedrivesdk.Folder()
+            i = onedrivesdk.Item()
+            i.name = Config.ENCRYPTED_FOLDER_NAME
+            i.folder = f
+
+            folder = self.client.item(drive='me', id='root').children.add(i)
+            self.folder_id = folder.id
+
+        return self.folder_id
+
+    def upload_fragment(self, fragment_data: bytes, fragment_name: str) -> str:
+        fragment_stream = io.BytesIO(fragment_data)
+        uploaded_item = self.client.item(drive='me', id=self.folder_id) \
+            .children[fragment_name] \
+            .upload(fragment_stream)
+        return uploaded_item.id
+
+    def download_fragment(self, fragment_id: str) -> bytes:
+        fragment_item = self.client.item(drive='me', id=fragment_id)
+        fragment_stream = fragment_item.download()
+        return fragment_stream.read()
+
+    def list_fragments(self) -> List[Dict]:
+        items = self.client.item(drive='me', id=self.folder_id).children.get()
+        return [{
+            'id': item.id,
+            'name': item.name,
+            'size': item.size
+        } for item in items]
+
+
+========================================
+File: cloud_services/gdrive_service.py
+========================================
+#cloud_services/gdrive_service.py
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
+from .base_cloud import BaseCloudService
+import io
+
+
+class GoogleDriveService(BaseCloudService):
+    SCOPES = ['https://www.googleapis.com/auth/drive.file']
+
+    def __init__(self, credentials_path: str):
+        self.credentials_path = credentials_path
+        self.service = None
+        self.folder_id = None
+
+    def authenticate(self) -> bool:
+        creds = None
+        if os.path.exists('token.json'):
+            creds = Credentials.from_authorized_user_file('token.json', self.SCOPES)
+
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    self.credentials_path, self.SCOPES)
+                creds = flow.run_local_server(port=0)
+            with open('token.json', 'w') as token:
+                token.write(creds.to_json())
+
+        self.service = build('drive', 'v3', credentials=creds)
+        return True
+
+    def create_secure_folder(self) -> str:
+        if not self.folder_id:
+            folder_metadata = {
+                'name': Config.ENCRYPTED_FOLDER_NAME,
+                'mimeType': 'application/vnd.google-apps.folder'
+            }
+            folder = self.service.files().create(
+                body=folder_metadata, fields='id').execute()
+            self.folder_id = folder.get('id')
+        return self.folder_id
+
+    def upload_fragment(self, fragment_data: bytes, fragment_name: str) -> str:
+        file_metadata = {
+            'name': fragment_name,
+            'parents': [self.folder_id]
+        }
+        media = MediaIoBaseUpload(
+            io.BytesIO(fragment_data),
+            mimetype='application/octet-stream',
+            resumable=True
+        )
+        file = self.service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+        return file.get('id')
+
+
+========================================
+File: cloud_services/box_service.py
+========================================
+#cloud_service/box_service.py
+from typing import List, Dict
+from boxsdk import OAuth2, Client
+from boxsdk.exception import BoxAPIException
+from .base_cloud import BaseCloudService
+from config import Config
+import io
+
+
+class BoxService(BaseCloudService):
+    def __init__(self):
+        self.client = None
+        self.folder_id = None
+
+    def authenticate(self) -> bool:
+        auth = OAuth2(
+            client_id=Config.BOX_CLIENT_ID,
+            client_secret=Config.BOX_CLIENT_SECRET,
+            store_tokens=self._store_tokens
+        )
+
+        self.client = Client(auth)
+        try:
+            user = self.client.user().get()
+            return True
+        except BoxAPIException:
+            return False
+
+    def _store_tokens(self, access_token, refresh_token):
+        # In production, store these securely
+        # For demo purposes, we'll just keep them in memory
+        self._access_token = access_token
+        self._refresh_token = refresh_token
+
+    def create_secure_folder(self) -> str:
+        if not self.folder_id:
+            try:
+                folder = self.client.folder('0').create_subfolder(Config.ENCRYPTED_FOLDER_NAME)
+                self.folder_id = folder.id
+            except BoxAPIException as e:
+                if 'folder already exists' in str(e):
+                    # Find existing folder
+                    items = self.client.folder('0').get_items()
+                    for item in items:
+                        if item.name == Config.ENCRYPTED_FOLDER_NAME:
+                            self.folder_id = item.id
+                            break
+                else:
+                    raise
+
+        return self.folder_id
+
+    def upload_fragment(self, fragment_data: bytes, fragment_name: str) -> str:
+        fragment_stream = io.BytesIO(fragment_data)
+        uploaded_file = self.client.folder(self.folder_id) \
+            .upload_stream(fragment_stream, fragment_name)
+        return uploaded_file.id
+
+    def download_fragment(self, fragment_id: str) -> bytes:
+        fragment_file = self.client.file(fragment_id).get()
+        fragment_content = fragment_file.content()
+        return fragment_content
+
+    def list_fragments(self) -> List[Dict]:
+        items = self.client.folder(self.folder_id).get_items()
+        return [{
+            'id': item.id,
+            'name': item.name,
+            'size': item.size
+        } for item in items]
+
+
+
+========================================
+File: cloud_services/base_cloud.py
+========================================
+#cloud_services/base_cloud.py
+from abc import ABC, abstractmethod
+from typing import List, Dict
+
+
+class BaseCloudService(ABC):
+    """Abstract base class for cloud service implementations."""
+
+    @abstractmethod
+    def authenticate(self) -> bool:
+        """Authenticate with the cloud service."""
+        pass
+
+    @abstractmethod
+    def create_secure_folder(self) -> str:
+        """Create the encrypted folder if it doesn't exist."""
+        pass
+
+    @abstractmethod
+    def upload_fragment(self, fragment_data: bytes, fragment_name: str) -> str:
+        """Upload an encrypted fragment to the cloud."""
+        pass
+
+    @abstractmethod
+    def download_fragment(self, fragment_id: str) -> bytes:
+        """Download an encrypted fragment from the cloud."""
+        pass
+
+    @abstractmethod
+    def list_fragments(self) -> List[Dict]:
+        """List all fragments in the secure folder."""
+        pass
+
+
+
+========================================
+File: utils/metadata_manager.py
+========================================
+# utils/metadata_manager.py
+import json
+import os
+from typing import Dict, Optional
+
+
+class MetadataManager:
+    def __init__(self, storage_path: str = "metadata"):
+        self.storage_path = storage_path
+        os.makedirs(storage_path, exist_ok=True)
+
+    def save_file_metadata(self, file_id: str, metadata: Dict) -> None:
+        """Save metadata for a file."""
+        metadata_path = os.path.join(self.storage_path, f"{file_id}.json")
+        with open(metadata_path, 'w') as f:
+            json.dump(metadata, f)
+
+    def get_file_metadata(self, file_id: str) -> Optional[Dict]:
+        """Retrieve metadata for a file."""
+        metadata_path = os.path.join(self.storage_path, f"{file_id}.json")
+        try:
+            with open(metadata_path, 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return None
+
+    def delete_file_metadata(self, file_id: str) -> bool:
+        """Delete metadata for a file."""
+        metadata_path = os.path.join(self.storage_path, f"{file_id}.json")
+        try:
+            os.remove(metadata_path)
+            return True
+        except FileNotFoundError:
+            return False
+
+    def list_all_files(self) -> List[Dict]:
+        """List metadata for all files."""
+        files = []
+        for filename in os.listdir(self.storage_path):
+            if filename.endswith('.json'):
+                file_id = filename[:-5]  # Remove .json extension
+                metadata = self.get_file_metadata(file_id)
+                if metadata:
+                    files.append(metadata)
+        return files
+
+
+========================================
+File: utils/__init__.py
+========================================
+
+
+
+========================================
+File: web_interface/__init__.py
+========================================
+
+
+
+========================================
+File: web_interface/app.py
+========================================
+# web_interface/app.py
+from flask import Flask
+from .routes import main_bp
+
+app = Flask(__name__)
+app.config.from_object(Config)
+
+app.register_blueprint(main_bp)
+
+
+========================================
+File: web_interface/routes.py
+========================================
+# web_interface/routes.py
+from flask import Blueprint, render_template, request, redirect, url_for, session
+from werkzeug.utils import secure_filename
+import os
+
+main_bp = Blueprint('main', __name__)
+
+
+@main_bp.route('/')
+def index():
+    if 'user_id' not in session:
+        return redirect(url_for('main.login'))
+    return render_template('dashboard.html')
+
+
+@main_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        cloud_service = request.form.get('cloud_service')
+        if cloud_service == 'gdrive':
+            service = GoogleDriveService(Config.GOOGLE_CREDENTIALS)
+        elif cloud_service == 'onedrive':
+            # Initialize OneDrive service
+            pass
+        elif cloud_service == 'box':
+            # Initialize Box service
+            pass
+
+        if service.authenticate():
+            session['cloud_service'] = cloud_service
+            session['user_id'] = True
+            return redirect(url_for('main.dashboard'))
+
+    return render_template('login.html')
+
+
+@main_bp.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return redirect(request.url)
+
+    file = request.files['file']
+    if file.filename == '':
+        return redirect(request.url)
+
+    if file:
+        # Process file upload with encryption and fragmentation
+        filename = secure_filename(file.filename)
+        file_data = file.read()
+
+        # Initialize services
+        encryptor = Encryptor(session['encryption_key'])
+        fragmenter = Fragmenter()
+
+        # Encrypt and fragment file
+        encrypted_data = encryptor.encrypt(file_data)
+        fragments = fragmenter.fragment_file(encrypted_data)
+
+        # Upload fragments to cloud
+        cloud_service = get_cloud_service(session['cloud_service'])
+        fragment_ids = []
+
+        for i, fragment in enumerate(fragments):
+            fragment_name = f"{filename}.fragment{i}"
+            fragment_id = cloud_service.upload_fragment(fragment, fragment_name)
+            fragment_ids.append(fragment_id)
+
+        # Save metadata
+        metadata = {
+            'filename': filename,
+            'fragments': fragment_ids,
+            'total_size': len(file_data)
+        }
+        save_metadata(metadata)
+
+        return redirect(url_for('main.dashboard'))
+
+
+========================================
+File: web_interface/templates/files.html
+========================================
+<!-- templates/files.html -->
+
+
+========================================
+File: web_interface/templates/login.html
+========================================
+<!-- templates/login.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Cloud Storage - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-md w-96">
+            <h1 class="text-2xl font-bold mb-6 text-center">Secure Cloud Storage</h1>
+            <form method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Select Cloud Service</label>
+                    <select name="cloud_service" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="gdrive">Google Drive</option>
+                        <option value="onedrive">OneDrive</option>
+                        <option value="box">Box</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Encryption Password</label>
+                    <input type="password" name="encryption_key" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <button type="submit"
+                        class="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition-colors">
+                    Connect to Cloud Service
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
+
+
+========================================
+File: web_interface/templates/dashboard.html
+========================================
+<!-- templates/dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Cloud Storage - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen">
+        <nav class="bg-white shadow-md">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <h1 class="text-xl font-bold">Secure Cloud Storage</h1>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="text-gray-600 mr-4">Connected to: {{ session['cloud_service'] }}</span>
+                        <a href="{{ url_for('main.logout') }}"
+                           class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors">
+                            Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <div class="px-4 py-6 sm:px-0">
+                <div class="border-4 border-dashed border-gray-200 rounded-lg p-4">
+                    <form action="{{ url_for('main.upload_file') }}" method="post" enctype="multipart/form-data"
+                          class="mb-8">
+                        <div class="flex items-center space-x-4">
+                            <input type="file" name="file" required
+                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
+                                          file:rounded-md file:border-0 file:text-sm file:font-semibold
+                                          file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            <button type="submit"
+                                    class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors">
+                                Upload & Encrypt
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+                        <ul class="divide-y divide-gray-200">
+                            {% for file in files %}
+                            <li class="px-6 py-4 flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="ml-3">
+                                        <p class="text-sm font-medium text-gray-900">{{ file.filename }}</p>
+                                        <p class="text-sm text-gray-500">Size: {{ file.size }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <a href="{{ url_for('main.download_file', file_id=file.id) }}"
+                                       class="bg-green-500 text-white px-3 py-1 rounded-md hover:bg-green-600 transition-colors">
+                                        Download
+                                    </a>
+                                    <form action="{{ url_for('main.delete_file', file_id=file.id) }}" method="post" class="inline">
+                                        <button type="submit"
+                                                class="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition-colors">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
+

@@ -1,7 +1,7 @@
 import os
 
 # List of directories or files to exclude from traversal
-excluded_items = [".venv", ".git", ".idea", ".DS_Store", "tests"]
+excluded_items = [".venv", ".git", ".idea", ".DS_Store", "tests", "README.md"]
 
 
 def read_files(dir_path, output_file):

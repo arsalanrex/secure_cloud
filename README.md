@@ -43,10 +43,8 @@ pip install -r requirements.txt
 4. Set up environment variables:
    - Create a `.env` file in the project root
    - Add the following configuration:
+   - If SECRET_KEY is not provided, a random key will be generated and stored in .env
 ```env
-# .env file
-SECRET_KEY=your-generated-secret-key-here
-
 # Google Drive
 GOOGLE_CREDENTIALS=path/to/your/google-credentials.json
 
@@ -57,6 +55,8 @@ ONEDRIVE_CLIENT_SECRET=your-onedrive-client-secret
 # Box
 BOX_CLIENT_ID=your-box-client-id
 BOX_CLIENT_SECRET=your-box-client-secret
+
+SECRET_KEY=your-generated-secret-key-here
 ```
 
 ## Cloud Service Setup

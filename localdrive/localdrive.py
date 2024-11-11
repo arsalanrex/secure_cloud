@@ -1,27 +1,31 @@
 # localdrive/localdrive.py
 
+
 from flask import Flask, request, send_file, jsonify, render_template
 from cloud_services.localdrive_service import LocalDriveService
-from config import LocalDriveConfig  # Import the LocalDriveConfig
+from config import LocalDriveConfig
 from pathlib import Path
 import mimetypes
 import os
-import io
 from dotenv import load_dotenv
 
 # Load environment variables from the main .env file
-main_env_path = Path(__file__).parent / '.env'
+main_env_path = Path(__file__).parent.parent / '.env'
 load_dotenv(dotenv_path=main_env_path)
 
-app = Flask(__name__, template_folder="web_interface/templates")
-app.config.from_object(LocalDriveConfig)  # Apply LocalDriveConfig
+# Calculate the correct template folder path
+template_dir = Path(__file__).parent.parent / 'web_interface' / 'templates'
+
+# Initialize Flask app with correct template directory
+app = Flask(__name__, template_folder=str(template_dir))
+app.config.from_object(LocalDriveConfig)
 
 drive_service = LocalDriveService()
 
 # Define path to SecureCloudStorage directory
-SECURE_STORAGE_PATH = Path(__file__).parent / 'localdrive' / 'data' / 'SecureCloudStorage'
+SECURE_STORAGE_PATH = Path(__file__).parent / 'data' / 'SecureCloudStorage'
 
-
+# Rest of your routes remain the same...
 @app.route('/')
 def list_files():
     # List files in SecureCloudStorage directory

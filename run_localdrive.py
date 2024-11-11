@@ -1,4 +1,4 @@
-# run localdrive
+# run_localdrive.py
 from localdrive.localdrive import app
 
 if __name__ == '__main__':

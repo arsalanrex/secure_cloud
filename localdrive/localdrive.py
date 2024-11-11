@@ -1,13 +1,19 @@
-# run_localdrive.py
+# localdrive/localdrive.py
+
 from flask import Flask, request, send_file, jsonify
 from cloud_services.localdrive_service import LocalDriveService
 from pathlib import Path
 import mimetypes
 import os
+import io
+from dotenv import load_dotenv
+
+# Load environment variables from the main .env file
+main_env_path = Path(__file__).parent.parent / '.env'
+load_dotenv(dotenv_path=main_env_path)
 
 app = Flask(__name__)
 drive_service = LocalDriveService()
-
 
 @app.route('/api/folders', methods=['POST'])
 def create_folder():
@@ -17,7 +23,6 @@ def create_folder():
 
     result = drive_service.create_folder(path)
     return jsonify(result)
-
 
 @app.route('/api/files/upload', methods=['POST'])
 def upload_file():
@@ -33,7 +38,6 @@ def upload_file():
     result = drive_service.upload_fragment(file.read(), str(Path(path) / file.filename))
     return jsonify({'id': result})
 
-
 @app.route('/api/files/download/<path:file_path>')
 def download_file(file_path):
     try:
@@ -48,7 +52,6 @@ def download_file(file_path):
     except FileNotFoundError:
         return jsonify({'error': 'File not found'}), 404
 
-
 @app.route('/api/files/move', methods=['POST'])
 def move_item():
     source = request.json.get('source')
@@ -59,7 +62,6 @@ def move_item():
 
     success = drive_service.move_item(source, destination)
     return jsonify({'success': success})
-
 
 @app.route('/api/files/copy', methods=['POST'])
 def copy_item():
@@ -72,7 +74,6 @@ def copy_item():
     success = drive_service.copy_item(source, destination)
     return jsonify({'success': success})
 
-
 @app.route('/api/files/preview/<path:file_path>')
 def get_preview(file_path):
     preview_path = drive_service.get_file_preview(file_path)
@@ -80,11 +81,6 @@ def get_preview(file_path):
         return send_file(preview_path)
     return jsonify({'error': 'Preview not available'}), 404
 
-
 @app.route('/api/stats')
 def get_stats():
     return jsonify(drive_service.get_stats())
-
-
-if __name__ == '__main__':
-    app.run(port=5001, debug=True)

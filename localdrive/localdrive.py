@@ -1,6 +1,6 @@
 # localdrive/localdrive.py
 
-from flask import Flask, request, send_file, jsonify
+from flask import Flask, request, send_file, jsonify, render_template
 from cloud_services.localdrive_service import LocalDriveService
 from config import LocalDriveConfig  # Import the LocalDriveConfig
 from pathlib import Path
@@ -10,13 +10,28 @@ import io
 from dotenv import load_dotenv
 
 # Load environment variables from the main .env file
-main_env_path = Path(__file__).parent.parent / '.env'
+main_env_path = Path(__file__).parent / '.env'
 load_dotenv(dotenv_path=main_env_path)
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="web_interface/templates")
 app.config.from_object(LocalDriveConfig)  # Apply LocalDriveConfig
 
 drive_service = LocalDriveService()
+
+# Define path to SecureCloudStorage directory
+SECURE_STORAGE_PATH = Path(__file__).parent / 'localdrive' / 'data' / 'SecureCloudStorage'
+
+
+@app.route('/')
+def list_files():
+    # List files in SecureCloudStorage directory
+    if SECURE_STORAGE_PATH.exists():
+        files = [str(file.relative_to(SECURE_STORAGE_PATH)) for file in SECURE_STORAGE_PATH.glob('*') if file.is_file()]
+    else:
+        files = []
+
+    return render_template('localdrive.html', files=files)
+
 
 @app.route('/api/folders', methods=['POST'])
 def create_folder():
@@ -26,6 +41,7 @@ def create_folder():
 
     result = drive_service.create_folder(path)
     return jsonify(result)
+
 
 @app.route('/api/files/upload', methods=['POST'])
 def upload_file():
@@ -41,19 +57,22 @@ def upload_file():
     result = drive_service.upload_fragment(file.read(), str(Path(path) / file.filename))
     return jsonify({'id': result})
 
+
 @app.route('/api/files/download/<path:file_path>')
 def download_file(file_path):
-    try:
-        data = drive_service.download_fragment(file_path)
-        mime_type = mimetypes.guess_type(file_path)[0] or 'application/octet-stream'
-        return send_file(
-            io.BytesIO(data),
-            mimetype=mime_type,
-            as_attachment=True,
-            download_name=os.path.basename(file_path)
-        )
-    except FileNotFoundError:
+    # Define the full file path
+    full_path = SECURE_STORAGE_PATH / file_path
+    if not full_path.is_file():
         return jsonify({'error': 'File not found'}), 404
+
+    mime_type = mimetypes.guess_type(str(full_path))[0] or 'application/octet-stream'
+    return send_file(
+        full_path,
+        mimetype=mime_type,
+        as_attachment=True,
+        download_name=full_path.name
+    )
+
 
 @app.route('/api/files/move', methods=['POST'])
 def move_item():
@@ -66,6 +85,7 @@ def move_item():
     success = drive_service.move_item(source, destination)
     return jsonify({'success': success})
 
+
 @app.route('/api/files/copy', methods=['POST'])
 def copy_item():
     source = request.json.get('source')
@@ -77,12 +97,14 @@ def copy_item():
     success = drive_service.copy_item(source, destination)
     return jsonify({'success': success})
 
+
 @app.route('/api/files/preview/<path:file_path>')
 def get_preview(file_path):
     preview_path = drive_service.get_file_preview(file_path)
     if preview_path:
         return send_file(preview_path)
     return jsonify({'error': 'Preview not available'}), 404
+
 
 @app.route('/api/stats')
 def get_stats():

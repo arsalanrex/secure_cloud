@@ -1,0 +1,31 @@
+<!-- web_interface/templates/localdrive.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalDrive - SecureCloudStorage</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex flex-col items-center">
+        <h1 class="text-2xl font-bold my-8">LocalDrive - SecureCloudStorage Contents</h1>
+
+        <div class="w-full max-w-4xl bg-white shadow-lg rounded-lg p-6">
+            <ul class="divide-y divide-gray-200">
+                {% for file in files %}
+                <li class="py-4 flex justify-between">
+                    <span class="text-gray-700">{{ file }}</span>
+                    <a href="{{ url_for('download_file', file_path=file) }}"
+                       class="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 transition-colors">
+                        Download
+                    </a>
+                </li>
+                {% else %}
+                <li class="py-4 text-gray-500">No files available in the SecureCloudStorage directory.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

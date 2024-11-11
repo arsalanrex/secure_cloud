@@ -1,6 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, send_file
 from werkzeug.utils import secure_filename
 import os
+
+from cloud_services.localdrive_service import LocalDriveService
 from encryption.encryptor import Encryptor
 from encryption.fragmenter import Fragmenter
 from utils.metadata_manager import MetadataManager
@@ -22,6 +24,8 @@ def get_cloud_service(service_name):
         return OneDriveService()
     elif service_name == 'box':
         return BoxService()
+    elif service_name == 'local':  # Add this
+        return LocalDriveService()
     raise ValueError(f"Unknown cloud service: {service_name}")
 
 

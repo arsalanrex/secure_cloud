@@ -1,2 +1,4 @@
 tests/*.txt
 .env
+misc.xml
+secure_cloud.iml

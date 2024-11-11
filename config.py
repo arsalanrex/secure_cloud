@@ -4,7 +4,7 @@ import secrets
 from dotenv import load_dotenv
 
 
-def get_or_create_secret_key():
+def get_or_create_secret_key(generate_if_missing=True):
     env_path = '.env'
 
     # Load existing .env file
@@ -14,6 +14,10 @@ def get_or_create_secret_key():
     secret_key = os.getenv('SECRET_KEY')
 
     if not secret_key or secret_key == 'your-secret-key-here' or secret_key == 'your-generated-secret-key-here':
+        # If generate_if_missing is False, return None without generating a key
+        if not generate_if_missing:
+            return None
+
         # Generate new secret key
         secret_key = secrets.token_hex(32)
 
@@ -44,7 +48,8 @@ def get_or_create_secret_key():
 
 
 class Config:
-    SECRET_KEY = get_or_create_secret_key()
+    # Generate secret key only if explicitly allowed
+    SECRET_KEY = get_or_create_secret_key(generate_if_missing=True)
     FRAGMENT_SIZE = 1024 * 1024  # 1MB
     ENCRYPTED_FOLDER_NAME = 'SecureCloudStorage'
 
@@ -54,3 +59,8 @@ class Config:
     ONEDRIVE_CLIENT_SECRET = os.getenv('ONEDRIVE_CLIENT_SECRET')
     BOX_CLIENT_ID = os.getenv('BOX_CLIENT_ID')
     BOX_CLIENT_SECRET = os.getenv('BOX_CLIENT_SECRET')
+
+
+class LocalDriveConfig(Config):
+    # Use the existing secret key without generating a new one
+    SECRET_KEY = get_or_create_secret_key(generate_if_missing=False)

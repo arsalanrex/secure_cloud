@@ -56,6 +56,9 @@ ONEDRIVE_CLIENT_SECRET=your-onedrive-client-secret
 BOX_CLIENT_ID=your-box-client-id
 BOX_CLIENT_SECRET=your-box-client-secret
 
+# LocalDrive
+encryption_key=your-encrytion-key
+
 SECRET_KEY=your-generated-secret-key-here
 ```
 

@@ -2,6 +2,7 @@
 
 from flask import Flask, request, send_file, jsonify
 from cloud_services.localdrive_service import LocalDriveService
+from config import LocalDriveConfig  # Import the LocalDriveConfig
 from pathlib import Path
 import mimetypes
 import os
@@ -13,6 +14,8 @@ main_env_path = Path(__file__).parent.parent / '.env'
 load_dotenv(dotenv_path=main_env_path)
 
 app = Flask(__name__)
+app.config.from_object(LocalDriveConfig)  # Apply LocalDriveConfig
+
 drive_service = LocalDriveService()
 
 @app.route('/api/folders', methods=['POST'])

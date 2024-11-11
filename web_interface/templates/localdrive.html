@@ -5,17 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Drive Explorer</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-50">
     <div class="min-h-screen">
-        <nav class="bg-white shadow-md">
+        <nav class="bg-white shadow-lg">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16">
                     <div class="flex items-center">
-                        <h1 class="text-xl font-bold">Local Drive Explorer</h1>
+                        <svg class="h-8 w-8 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                        </svg>
+                        <h1 class="text-2xl font-bold text-gray-800">Local Drive Explorer</h1>
                     </div>
                     <div class="flex items-center">
-                        <span class="text-gray-600 mr-4">Storage Location: localdrive/data</span>
+                        <span class="text-gray-600">Storage Location: </span>
+                        <span class="ml-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full">localdrive/data</span>
                     </div>
                 </div>
             </div>
@@ -23,55 +28,106 @@
 
         <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
             <div class="px-4 py-6 sm:px-0">
-                <div class="border-4 border-dashed border-gray-200 rounded-lg p-4">
+                <div class="bg-white rounded-lg shadow-md p-6">
                     <form id="upload-form" action="/api/files/upload" method="post" enctype="multipart/form-data"
                           class="mb-8">
                         <div class="flex items-center space-x-4">
                             <input type="file" name="file" required
                                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
-                                          file:rounded-md file:border-0 file:text-sm file:font-semibold
-                                          file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                          file:rounded-full file:border-0 file:text-sm file:font-semibold
+                                          file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100
+                                          focus:outline-none">
                             <button type="submit"
-                                    class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors">
+                                    class="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700
+                                           transition-colors duration-200 flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                                </svg>
                                 Upload File
                             </button>
                         </div>
 
-                        <!-- Progress bar -->
-                        <div id="progress-container" class="w-full bg-gray-200 rounded-full mt-4 hidden">
-                            <div id="progress-bar" class="bg-green-500 h-2 rounded-full" style="width: 0%;"></div>
+                        <div id="progress-container" class="w-full bg-gray-100 rounded-full mt-4 hidden">
+                            <div id="progress-bar" class="bg-green-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
                         </div>
                     </form>
 
-                    <div class="bg-white shadow overflow-hidden sm:rounded-md">
-                        <ul class="divide-y divide-gray-200">
-                            {% if files %}
-                                {% for file in files %}
-                                <li class="px-6 py-4 flex items-center justify-between">
-                                    <div class="flex items-center">
-                                        <div class="ml-3">
-                                            <p class="text-sm font-medium text-gray-900">{{ file }}</p>
-                                            <p class="text-sm text-gray-500">Location: SecureCloudStorage</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex space-x-2">
-                                        <a href="{{ url_for('download_file', file_path=file) }}"
-                                           class="bg-green-500 text-white px-3 py-1 rounded-md hover:bg-green-600 transition-colors">
-                                            Download
-                                        </a>
-                                        <a href="{{ url_for('get_preview', file_path=file) }}"
-                                           class="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 transition-colors">
-                                            Preview
-                                        </a>
-                                    </div>
-                                </li>
-                                {% endfor %}
-                            {% else %}
-                                <li class="px-6 py-4">
-                                    <p class="text-sm text-gray-500">No files found in the storage directory.</p>
-                                </li>
-                            {% endif %}
-                        </ul>
+                    <div class="overflow-hidden">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modified</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% if files %}
+                                    {% for file in files %}
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <svg class="h-5 w-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                                </svg>
+                                                <div class="text-sm font-medium text-gray-900">{{ file.name }}</div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-gray-500" id="file-size-{{ loop.index }}"></div>
+                                            <script>
+                                                document.getElementById('file-size-{{ loop.index }}').textContent =
+                                                    ({{ file.size }} / 1024 / 1024).toFixed(2) + ' MB';
+                                            </script>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                {{ file.mime_type }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-gray-500" id="modified-date-{{ loop.index }}"></div>
+                                            <script>
+                                                document.getElementById('modified-date-{{ loop.index }}').textContent =
+                                                    moment({{ file.modified }} * 1000).format('MMM D, YYYY HH:mm');
+                                            </script>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                SecureCloudStorage
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <div class="flex justify-end space-x-2">
+                                                <a href="{{ url_for('download_file', file_path=file.path) }}"
+                                                   class="text-white bg-green-500 hover:bg-green-600 px-3 py-1 rounded-full text-sm transition-colors duration-200">
+                                                    Download
+                                                </a>
+                                                <a href="{{ url_for('get_preview', file_path=file.path) }}"
+                                                   class="text-white bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded-full text-sm transition-colors duration-200">
+                                                    Preview
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                                            <div class="flex flex-col items-center py-4">
+                                                <svg class="h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"></path>
+                                                </svg>
+                                                <p>No files found in the storage directory</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -86,7 +142,6 @@
             const formData = new FormData(form);
             const xhr = new XMLHttpRequest();
 
-            // Show progress container
             document.getElementById('progress-container').classList.remove('hidden');
 
             xhr.upload.addEventListener('progress', function(event) {

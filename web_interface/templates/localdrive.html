@@ -28,7 +28,7 @@
 
         <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
             <div class="px-4 py-6 sm:px-0">
-                <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="bg-white rounded-lg shadow-md p-6 overflow-x-auto">
                     <form id="upload-form" action="/api/files/upload" method="post" enctype="multipart/form-data"
                           class="mb-8">
                         <div class="flex items-center space-x-4">
@@ -52,7 +52,7 @@
                         </div>
                     </form>
 
-                    <div class="overflow-hidden">
+                    <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
@@ -103,12 +103,8 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div class="flex justify-end space-x-2">
                                                 <a href="{{ url_for('download_file', file_path=file.path) }}"
-                                                   class="text-white bg-green-500 hover:bg-green-600 px-3 py-1 rounded-full text-sm transition-colors duration-200">
+                                                   class="text-white bg-green-500 hover:bg-green-600 px-3 py-1 rounded-full text-sm transition-colors duration-200 flex items-center">
                                                     Download
-                                                </a>
-                                                <a href="{{ url_for('get_preview', file_path=file.path) }}"
-                                                   class="text-white bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded-full text-sm transition-colors duration-200">
-                                                    Preview
                                                 </a>
                                             </div>
                                         </td>

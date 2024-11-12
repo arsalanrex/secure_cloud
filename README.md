@@ -1,18 +1,19 @@
 # Secure Cloud Storage
 
-A secure, encrypted file storage solution that fragments and distributes encrypted data across multiple cloud storage providers including Google Drive, OneDrive, and Box.
+## Overview
+
+Secure Cloud Storage is a cloud-based file storage application that ensures data security through encryption and fragmentation. This project addresses the need for secure data storage across multiple cloud platforms (Google Drive, OneDrive, and Box) as well as on a local drive. By dividing files into encrypted fragments and uploading these pieces separately, it enhances security and mitigates risks related to data breaches on cloud platforms.
+
+This provides a solution to secure data storage and retrieval by leveraging multiple storage platforms. Encryption and fragmentation not only protect sensitive data but also distribute it across various locations, reducing vulnerability to unauthorized access.
 
 ## Features
 
-- End-to-end file encryption using Fernet symmetric encryption
-- File fragmentation for distributed storage
-- Support for multiple cloud storage providers:
-  - Google Drive
-  - Microsoft OneDrive
-  - Box
-- Web-based user interface
-- Secure metadata management
-- Password-based key derivation
+- **Multiple Cloud Storage Support**: Integrates with Google Drive, OneDrive, Box, and local storage.
+- **File Encryption**: Encrypts files before uploading them, using strong cryptographic algorithms.
+- **File Fragmentation**: Splits encrypted files into fragments to enhance security.
+- **File Reconstruction**: Reassembles file fragments and decrypts them locally upon download.
+- **Web Interface**: Provides a user-friendly interface to upload, download, and manage files.
+
 
 ## Prerequisites
 
@@ -21,12 +22,30 @@ A secure, encrypted file storage solution that fragments and distributes encrypt
 - Cloud service accounts (Google Drive, OneDrive, Box)
 - Required Python packages (see requirements.txt)
 
+## Technology Stack
+
+- **Backend**: Python 3.9+
+- **Web Framework**: Flask
+- **Cloud Storage Integration**: Google Drive API, Microsoft Graph API (for OneDrive), Box SDK
+- **Encryption**: Cryptography library (for file encryption using symmetric keys)
+- **Fragmentation**: Custom Python logic for dividing files into fragments
+- **Data Storage**:
+  - **Cloud Storage**: Google Drive, OneDrive, Box
+  - **Local Storage**: Local directory structure for local storage support
+- **Frontend**: HTML, CSS, JavaScript (Tailwind CSS for styling)
+- **Session Management**: Flask-Session
+- **Environment Management**: python-dotenv
+- **Testing**: Pytest
+- **Image & PDF Processing**: Pillow (PIL) for image previews, PyMuPDF for PDF previews
+
+
 ## Installation
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd secure-cloud-storage
+git clone https://github.com/arsalanrex/secure_cloud.git
+cd secure_cloud
+
 ```
 
 2. Create and activate a virtual environment:
@@ -82,23 +101,63 @@ SECRET_KEY=your-generated-secret-key-here
 3. Get the client ID and secret
 4. Add them to `.env`
 
+
+## Project Structure
+
+```secure-cloud-storage
+├── .env                          # Environment variables for cloud credentials
+├── cloud_services                # Cloud storage services module
+│   ├── __init__.py               # Module initializer
+│   ├── base_cloud.py             # Abstract base class for cloud services
+│   ├── box_service.py            # Box cloud storage service implementation
+│   ├── gdrive_service.py         # Google Drive cloud storage service implementation
+│   ├── localdrive_service.py     # Local storage service implementation
+│   └── onedrive_service.py       # OneDrive cloud storage service implementation
+├── config.py                     # Configuration file with encryption and fragment settings
+├── encryption                    # Encryption and fragmentation module
+│   ├── __init__.py               # Module initializer
+│   ├── encryptor.py              # File encryption and decryption class
+│   └── fragmenter.py             # File fragmentation and reassembly class
+├── localdrive                    # Local storage directory
+│   ├── data                      # SecureCloudStorage encrypted fragments storage
+│   ├── localdrive.py             # Local storage file manager and preview generator
+│   └── metadata                  # Metadata for uploaded files
+├── metadata                      # Root-level metadata directory
+├── requirements.txt              # Python dependencies list
+├── run.py                        # Entry point for web server
+├── run_localdrive.py             # Entry point for local drive server
+├── utils                         # Utility scripts
+│   ├── __init__.py               # Module initializer
+│   └── metadata_manager.py       # Metadata manager
+└── web_interface                 # Web interface for the application
+    ├── app.py                    # Flask application setup
+    ├── routes.py                 # Web routes for file management
+    └── templates                 # HTML templates for web interface
+```
+
+
 ## Usage
 
 1. Start the application:
+
+#### For Cloud Storage
 ```bash
 python run.py
 ```
+Access the client interface at `http://localhost:5000`
 
-2. Access the web interface at `http://localhost:5000`
+#### For Local Drive
+```bash
+python run_localdrive.py
+```
+Access the local drive interface at `http://localhost:5001`
 
-3. Log in using your preferred cloud service
-
-4. Upload files:
+2. Upload files:
    - Files are automatically encrypted
    - Split into fragments
    - Distributed across your cloud storage
 
-5. Download files:
+3. Download files:
    - Files are automatically reassembled
    - Decrypted using your encryption key
    - Downloaded to your local machine
@@ -120,29 +179,6 @@ python run.py
 - Tracks fragment distribution
 - Manages reconstruction information
 
-## Project Structure
-
-```
-secure-cloud-storage/
-├── config.py                 # Configuration settings
-├── run.py                   # Application entry point
-├── requirements.txt         # Python dependencies
-├── encryption/             # Encryption modules
-│   ├── encryptor.py       # Encryption implementation
-│   └── fragmenter.py      # File fragmentation logic
-├── cloud_services/        # Cloud provider implementations
-│   ├── base_cloud.py     # Abstract base class
-│   ├── gdrive_service.py # Google Drive implementation
-│   ├── onedrive_service.py # OneDrive implementation
-│   └── box_service.py    # Box implementation
-├── utils/                 # Utility functions
-│   └── metadata_manager.py # Metadata handling
-└── web_interface/        # Flask web application
-    ├── app.py           # Flask application setup
-    ├── routes.py        # Route handlers
-    └── templates/       # HTML templates
-```
-
 ## Contributing
 
 1. Fork the repository
@@ -151,18 +187,12 @@ secure-cloud-storage/
 4. Push to the branch
 5. Create a Pull Request
 
-## Security Considerations
-
-- Always use strong passwords for encryption
-- Keep your cloud service credentials secure
-- Don't share your encryption key
-- Regularly backup your metadata
-- Monitor your cloud storage usage
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Disclaimer
+The MIT License is a permissive license that is short and to the point. It lets people do almost anything they want with your project, like making and distributing closed source versions, as long as they include the original copyright and license notice.
 
-This project is for educational purposes. While it implements security best practices, you should thoroughly review and test the security measures before using it in a production environment.
+## Contact
+
+For any queries or support, please contact [Arsalan] at [arsalan.rex@gmail.com].

@@ -2,3 +2,6 @@ tests/*.txt
 .env
 misc.xml
 secure_cloud.iml
+venv
+tests/project_content.txt
+tests/project_tree.txt

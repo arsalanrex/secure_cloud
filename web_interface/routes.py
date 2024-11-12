@@ -1,5 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, send_file
 from werkzeug.utils import secure_filename
+import mimetypes
+from datetime import datetime
 import os
 
 from cloud_services.localdrive_service import LocalDriveService
@@ -108,6 +110,7 @@ def upload_file():
         metadata_manager.save_file_metadata(file_id, metadata)
 
         return redirect(url_for('main.dashboard'))
+
 
 
 @main_bp.route('/download/<file_id>')
